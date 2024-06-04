@@ -51,11 +51,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
 	TSubclassOf<AActor> ChunkClass;
 
+	/** A Next Level that to be spawned upStairs */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
+	TSubclassOf<AActor> UpStairClass;
+
+	/** A Next Level that to be spawned downStairs */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
+	TSubclassOf<AActor> DownStairClass;
+
 	/** A Obstacle class that contains many meshes act as obstacle */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
 	TSubclassOf<AActor> ObstacleClass;
 
 	/** Iterative variable that updates arrow spawn location */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ChunkLocation)
 	float IterativeNextArrowLocation;
 
 protected:

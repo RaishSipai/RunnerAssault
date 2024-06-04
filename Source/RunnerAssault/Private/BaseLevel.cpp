@@ -6,6 +6,8 @@
 #include "Components/ArrowComponent.h"
 #include "Components/SceneComponent.h"
 
+#include "Location.h"
+
 // Sets default values
 ABaseLevel::ABaseLevel()
 {
@@ -76,12 +78,29 @@ void ABaseLevel::SpawnObstacle()
 
 void ABaseLevel::SpawnLevel()
 {
+	// Checks if ObstacleClass is not null and spawn obstacle at any three lanes
 	if (ChunkClass)
 	{
 		FVector TempSpawnLocation = NextSpawnLocationArrow->GetComponentLocation();
 		IterativeNextArrowLocation += 1000.0f;
 		NextSpawnLocationArrow->SetWorldLocation(FVector(0.0f, IterativeNextArrowLocation, 0.0f));
-		GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+
+		float RandomNumber = FMath::FRandRange(0.0f, 2.0f); // Gives random float value between 1.0 to 3.0
+		if (RandomNumber <= 1.5f)
+		{
+			GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+		}
+		else if (RandomNumber <= 2.0f)
+		{
+			if (RandomNumber <= 1.75f)
+			{
+				GetWorld()->SpawnActor(UpStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			}
+			else
+			{
+				GetWorld()->SpawnActor(DownStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			}
+		}
 	}
 }
 
