@@ -14,12 +14,12 @@ UCLASS()
 class RUNNERASSAULT_API ABaseLevel : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ABaseLevel();
 
-	/** Default Scene Component that become RootComponent of this Actor */
+	/** Default Scene Component that becomes RootComponent of this Actor */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Scene)
 	USceneComponent* MyScene;
 
@@ -40,7 +40,7 @@ public:
 	UArrowComponent* LeftArrow;
 
 	/** Mesh Floor To be Spawned */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = floor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Floor)
 	class UStaticMeshComponent* FloorMesh;
 
 	/** Checkpoint when character hits up new floor spawns */
@@ -63,6 +63,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
 	TSubclassOf<AActor> ObstacleClass;
 
+	/** A Gold Coin Class that to be spawned above level */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Chunks)
+	TSubclassOf<AActor> CoinClass;
+
 	/** Iterative variable that updates arrow spawn location */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ChunkLocation)
 	float IterativeNextArrowLocation;
@@ -71,19 +75,25 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
 	// To spawn obstacle at any of 3 lanes
 	void SpawnObstacle();
 
 	// Called to spawn next level or floor or chunk class when character reached at checkpoint
 	void SpawnLevel();
 
+	// Called to spawn Gold Coin above the level
+	void SpawnGoldCoin(FName ArrowName);
 
-public:	
+	// Used to Identify which don't spawn stair down next to stair up
+	bool bIsStairUp;
+
+	// Used to Identify which don't spawn stair Up next to stair Down
+	bool bIsStairDown;
+
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComponent, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
 };

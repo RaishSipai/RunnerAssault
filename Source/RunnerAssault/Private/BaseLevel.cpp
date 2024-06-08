@@ -1,25 +1,27 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "BaseLevel.h"
 #include "Components/BoxComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/SceneComponent.h"
 
-#include "Location.h"
+// Constants for configuration
+constexpr float DefaultIterativeNextArrowLocation = 5000.0f;
+constexpr float IterativeNextArrowIncrement = 1000.0f;
+constexpr float LifespanAfterOverlap = 15.0f;
 
 // Sets default values
 ABaseLevel::ABaseLevel()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
+	// Initialize components
 	MyScene = CreateDefaultSubobject<USceneComponent>(TEXT("MyScene"));
 	RootComponent = MyScene;
 
-	// floor mesh to be spawned initializing
 	FloorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FloorMesh"));
 	FloorMesh->SetupAttachment(RootComponent);
+
 	Checkpoint = CreateDefaultSubobject<UBoxComponent>(TEXT("Checkpoint"));
 	Checkpoint->SetupAttachment(RootComponent);
 
@@ -35,9 +37,12 @@ ABaseLevel::ABaseLevel()
 	LeftArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("LeftArrow"));
 	LeftArrow->SetupAttachment(RootComponent);
 
-	IterativeNextArrowLocation = 5000.0f;
+	// Set initial arrow location
+	IterativeNextArrowLocation = DefaultIterativeNextArrowLocation;
 	NextSpawnLocationArrow->SetWorldLocation(FVector(0.0f, IterativeNextArrowLocation, 0.0f));
 
+	bIsStairUp = false;
+	bIsStairDown = false;
 }
 
 // Called when the game starts or when spawned
@@ -48,59 +53,100 @@ void ABaseLevel::BeginPlay()
 	// Bind the overlap event
 	Checkpoint->OnComponentBeginOverlap.AddDynamic(this, &ABaseLevel::OnOverlapBegin);
 
+	// Spawn initial obstacle
 	SpawnObstacle();
-	
 }
 
+// Spawns an obstacle at one of the three lanes
 void ABaseLevel::SpawnObstacle()
 {
-	// Checks if ObstacleClass is not null and spawn obstacle at any three lanes
 	if (ObstacleClass)
 	{
-		float RandomNumber = FMath::FRandRange(0.0f, 3.0f); // Gives random float value between 1.0 to 3.0
+		float RandomNumber = FMath::FRandRange(0.0f, 3.0f);
+		FVector TempSpawnLocation;
+
 		if (RandomNumber <= 1.0f)
 		{
-			FVector TempSpawnLocation = RightArrow->GetComponentLocation();
-			GetWorld()->SpawnActor(ObstacleClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			TempSpawnLocation = RightArrow->GetComponentLocation();
+			SpawnGoldCoin("RightArrow");
 		}
 		else if (RandomNumber <= 2.0f)
 		{
-			FVector TempSpawnLocation = MiddleArrow->GetComponentLocation();
-			GetWorld()->SpawnActor(ObstacleClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			TempSpawnLocation = MiddleArrow->GetComponentLocation();
+			SpawnGoldCoin("MiddleArrow");
 		}
-		else if (RandomNumber <= 3.0f)
+		else
 		{
-			FVector TempSpawnLocation = LeftArrow->GetComponentLocation();
-			GetWorld()->SpawnActor(ObstacleClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			TempSpawnLocation = LeftArrow->GetComponentLocation();
+			SpawnGoldCoin("LeftArrow");
 		}
+
+		GetWorld()->SpawnActor(ObstacleClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 	}
 }
 
+// Spawns the next level or chunk
 void ABaseLevel::SpawnLevel()
 {
-	// Checks if ObstacleClass is not null and spawn obstacle at any three lanes
-	if (ChunkClass)
+	if (ChunkClass && UpStairClass && DownStairClass)
 	{
 		FVector TempSpawnLocation = NextSpawnLocationArrow->GetComponentLocation();
-		IterativeNextArrowLocation += 1000.0f;
+		IterativeNextArrowLocation += IterativeNextArrowIncrement;
 		NextSpawnLocationArrow->SetWorldLocation(FVector(0.0f, IterativeNextArrowLocation, 0.0f));
 
-		float RandomNumber = FMath::FRandRange(0.0f, 2.0f); // Gives random float value between 1.0 to 3.0
+		float RandomNumber = FMath::FRandRange(1.0f, 3.0f);
+
 		if (RandomNumber <= 1.5f)
 		{
+			bIsStairUp = false;
+			bIsStairDown = false;
 			GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 		}
 		else if (RandomNumber <= 2.0f)
 		{
-			if (RandomNumber <= 1.75f)
+			if (RandomNumber <= 1.75f && !bIsStairDown)
 			{
+				bIsStairUp = true;
 				GetWorld()->SpawnActor(UpStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+			}
+			else if (RandomNumber <= 2.0f && !bIsStairUp)
+			{
+				bIsStairDown = true;
+				GetWorld()->SpawnActor(DownStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 			}
 			else
 			{
-				GetWorld()->SpawnActor(DownStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+				GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 			}
 		}
+		else
+		{
+			GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+		}
+	}
+}
+
+// Spawns a gold coin at the specified arrow location
+void ABaseLevel::SpawnGoldCoin(FName ArrowName)
+{
+	if (CoinClass)
+	{
+		FVector TempSpawnLocation;
+
+		if (ArrowName == "RightArrow")
+		{
+			TempSpawnLocation = FMath::RandBool() ? MiddleArrow->GetComponentLocation() : LeftArrow->GetComponentLocation();
+		}
+		else if (ArrowName == "MiddleArrow")
+		{
+			TempSpawnLocation = FMath::RandBool() ? RightArrow->GetComponentLocation() : LeftArrow->GetComponentLocation();
+		}
+		else if (ArrowName == "LeftArrow")
+		{
+			TempSpawnLocation = FMath::RandBool() ? RightArrow->GetComponentLocation() : MiddleArrow->GetComponentLocation();
+		}
+
+		GetWorld()->SpawnActor(CoinClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 	}
 }
 
@@ -108,16 +154,14 @@ void ABaseLevel::SpawnLevel()
 void ABaseLevel::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void ABaseLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor->ActorHasTag("Player"))
 	{
-		// Destroys itself when object spawned within 10 seconds
-		SetLifeSpan(15.0f);
+		// Destroys itself when object spawned within 15 seconds
+		SetLifeSpan(LifespanAfterOverlap);
 		SpawnLevel();
 	}
 }
-

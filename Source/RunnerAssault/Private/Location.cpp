@@ -11,6 +11,16 @@ ALocation::ALocation()
 
 }
 
+void ALocation::SetLocation(FVector Xyz)
+{
+	SetActorLocation(Xyz);
+}
+
+void ALocation::SetRotation(FRotator Xyz)
+{
+	SetActorRotation(Xyz);
+}
+
 // Called when the game starts or when spawned
 void ALocation::BeginPlay()
 {
