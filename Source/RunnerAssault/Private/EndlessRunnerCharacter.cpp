@@ -52,6 +52,10 @@ AEndlessRunnerCharacter::AEndlessRunnerCharacter()
 
 	bIsDead = false;
 
+	// Initialize speed multiplier and increase rate
+	SpeedMultiplier = 1.0f;
+	SpeedIncreaseRate = 0.0125f; // Adjust this value to control how quickly the speed increases
+
 }
 
 // Called when the game starts or when spawned
@@ -75,7 +79,7 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (Controller != nullptr && !bIsDead)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -86,9 +90,6 @@ void AEndlessRunnerCharacter::Move(const FInputActionValue& Value)
 
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 	}
 }
@@ -100,7 +101,21 @@ void AEndlessRunnerCharacter::Tick(float DeltaTime)
 
 	if (!bIsDead)
 	{
-		AddMovementInput(FVector::ForwardVector);
+		// Continuously move forward
+		AddMovementInput(FVector::ForwardVector, SpeedMultiplier);
+
+		// Increase speed multiplier over time
+		SpeedMultiplier += SpeedIncreaseRate * DeltaTime;
+
+		if (GetCharacterMovement()->MaxWalkSpeed <= 1600.0f)
+		{
+			// Update MaxWalkSpeed dynamically
+			GetCharacterMovement()->MaxWalkSpeed = 600.0f * SpeedMultiplier;
+		}
+
+		// Implement your speed calculation logic here
+		FVector Velocity = GetVelocity();
+		CurrentSpeed = Velocity.Size() * 0.036f; // This gives you the magnitude of the velocity vector
 	}
 	else
 	{
@@ -130,8 +145,6 @@ void AEndlessRunnerCharacter::Die()
 {
 	// Enable physics simulation for the collision component
 	GetMesh()->SetSimulatePhysics(true);
-	// set the speed to 0 M/s
-	GetCharacterMovement()->MaxWalkSpeed = 0.0f;
 	// Stop character movement
 	GetCharacterMovement()->StopMovementImmediately();
 }

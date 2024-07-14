@@ -4,6 +4,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/SceneComponent.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 // Constants for configuration
 constexpr float DefaultIterativeNextArrowLocation = 5000.0f;
@@ -41,8 +43,6 @@ ABaseLevel::ABaseLevel()
 	IterativeNextArrowLocation = DefaultIterativeNextArrowLocation;
 	NextSpawnLocationArrow->SetWorldLocation(FVector(0.0f, IterativeNextArrowLocation, 0.0f));
 
-	bIsStairUp = false;
-	bIsStairDown = false;
 }
 
 // Called when the game starts or when spawned
@@ -52,6 +52,9 @@ void ABaseLevel::BeginPlay()
 
 	// Bind the overlap event
 	Checkpoint->OnComponentBeginOverlap.AddDynamic(this, &ABaseLevel::OnOverlapBegin);
+
+	// Set a timer to call OnTimerExpire function after 5 seconds
+	GetWorld()->GetTimerManager().SetTimer(StairTimerHandle, this, &ABaseLevel::BoolControlOnTimerExprire, 15.0f, true);
 
 	// Spawn initial obstacle
 	SpawnObstacle();
@@ -94,25 +97,23 @@ void ABaseLevel::SpawnLevel()
 		IterativeNextArrowLocation += IterativeNextArrowIncrement;
 		NextSpawnLocationArrow->SetWorldLocation(FVector(0.0f, IterativeNextArrowLocation, 0.0f));
 
-		float RandomNumber = FMath::FRandRange(1.0f, 3.0f);
+		float RandomNumber = FMath::FRandRange(1.0f, 2.0f);
 
 		if (RandomNumber <= 1.5f)
 		{
-			bIsStairUp = false;
-			bIsStairDown = false;
 			GetWorld()->SpawnActor(ChunkClass, &TempSpawnLocation, &FRotator::ZeroRotator);
 		}
-		else if (RandomNumber <= 2.0f)
+		else if (RandomNumber <= 2.0f && !bIsStairUsed)
 		{
-			if (RandomNumber <= 1.75f && !bIsStairDown)
+			if (RandomNumber <= 1.75f)
 			{
-				bIsStairUp = true;
 				GetWorld()->SpawnActor(UpStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+				bIsStairUsed = true;
 			}
-			else if (RandomNumber <= 2.0f && !bIsStairUp)
+			else if (RandomNumber <= 2.0f)
 			{
-				bIsStairDown = true;
 				GetWorld()->SpawnActor(DownStairClass, &TempSpawnLocation, &FRotator::ZeroRotator);
+				bIsStairUsed = true;
 			}
 			else
 			{
@@ -150,10 +151,9 @@ void ABaseLevel::SpawnGoldCoin(FName ArrowName)
 	}
 }
 
-// Called every frame
-void ABaseLevel::Tick(float DeltaTime)
+void ABaseLevel::BoolControlOnTimerExprire()
 {
-	Super::Tick(DeltaTime);
+	bIsStairUsed = false;
 }
 
 void ABaseLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

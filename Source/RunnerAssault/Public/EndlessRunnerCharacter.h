@@ -48,6 +48,19 @@ public:
 	// to determine whether a character is died or not
 	bool bIsDead;
 
+	// Speed multiplier
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float SpeedMultiplier;
+
+	// Speed increase rate
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float SpeedIncreaseRate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float CurrentSpeed;
+
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
